@@ -59,20 +59,16 @@ class Threshold(Function):
         self.save_for_backward(input) 
         m = torch.min(input)
         n = torch.max(input)
-     #   r = np.linspace(m, n, num=self.th)
-        output = input.clone()
-        
-        for i in np.linspace(m, n, num=self.th):
-         #   print i
-            #output = input.clone()
-            output[output< i]=-1
-            output[output>=i]= 1
-           
-            if i==m:
-                out = output #torch.unsqueeze(output,0)
-            else:
-                out = torch.cat([out,output],1) #torch.cat([out,torch.unsqueeze(output,0)],0) 
-        #print out.size()
+        r = np.linspace(m, n, num=self.th+1, endpoint=False)
+        for i in r[1:]: # excluding the smallest value 
+                output = input.clone()
+                output[output< i]=-1
+                output[output>=i]= 1
+               
+                if i==r[1]:
+                    out = output #torch.unsqueeze(output,0)
+                else:
+                    out = torch.cat([out,output],1) #torch.cat([out,torch.unsqueeze(output,0)],0) 
         return out
 
 
