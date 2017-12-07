@@ -34,42 +34,42 @@ torch.manual_seed(args.seed)
 if args.cuda:
     torch.cuda.manual_seed(args.seed)
 
-data_folder = './data'
-#kwargs = {'num_workers': 1, 'pin_memory': True} if args.cuda else {}
-#train_loader = torch.utils.data.DataLoader(
-#    datasets.MNIST(data_folder, train=True, download=True,
-#                   transform=transforms.Compose([
-#                       transforms.ToTensor(),
-#                       transforms.Normalize((0.1307,), (0.3081,))
-#                   ])),
-#    batch_size=args.batch_size, shuffle=True, **kwargs)
-#test_loader = torch.utils.data.DataLoader(
-#    datasets.MNIST(data_folder, train=False, transform=transforms.Compose([
-#                       transforms.ToTensor(),
-#                       transforms.Normalize((0.1307,), (0.3081,))
-#                   ])),
-#    batch_size=args.batch_size, shuffle=True, **kwargs)
-#    
-    
-    
-kwargs = {'num_workers': 2, 'pin_memory': True} if args.cuda else {}
+data_folder = '../bagCNN/data'
+kwargs = {'num_workers': 1, 'pin_memory': True} if args.cuda else {}
 train_loader = torch.utils.data.DataLoader(
-    datasets.CIFAR10(data_folder, train=True, download=True,
+    datasets.MNIST(data_folder, train=True, download=True,
                    transform=transforms.Compose([
-                       transforms.RandomCrop([28, 28]),
                        transforms.ToTensor(),
-                       transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-                       
+                       transforms.Normalize((0.1307,), (0.3081,))
                    ])),
     batch_size=args.batch_size, shuffle=True, **kwargs)
 test_loader = torch.utils.data.DataLoader(
-    datasets.CIFAR10(data_folder, train=False, transform=transforms.Compose([
-                       transforms.RandomCrop([28, 28]),
+    datasets.MNIST(data_folder, train=False, transform=transforms.Compose([
                        transforms.ToTensor(),
-                       transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-                       
+                       transforms.Normalize((0.1307,), (0.3081,))
                    ])),
     batch_size=args.batch_size, shuffle=True, **kwargs)
+    
+    
+    
+#kwargs = {'num_workers': 2, 'pin_memory': True} if args.cuda else {}
+#train_loader = torch.utils.data.DataLoader(
+#    datasets.CIFAR10(data_folder, train=True, download=True,
+#                   transform=transforms.Compose([
+#                       transforms.RandomCrop([28, 28]),
+#                       transforms.ToTensor(),
+#                       transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+#                       
+#                   ])),
+#    batch_size=args.batch_size, shuffle=True, **kwargs)
+#test_loader = torch.utils.data.DataLoader(
+#    datasets.CIFAR10(data_folder, train=False, transform=transforms.Compose([
+#                       transforms.RandomCrop([28, 28]),
+#                       transforms.ToTensor(),
+#                       transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+#                       
+#                   ])),
+#    batch_size=args.batch_size, shuffle=True, **kwargs)
 
 def to_np(x):
     return x.data.cpu().numpy()
@@ -82,9 +82,9 @@ def to_var(x):
 class Net(nn.Module):
     def __init__(self):
         super(Net, self).__init__()
-        self.t = 10
-        self.conv1 = nn.Conv2d(self.t*3, 10, kernel_size=5)
-     #   self.conv1 = nn.Conv2d(3, 10, kernel_size=5)
+        self.t = 2
+        self.conv1 = nn.Conv2d(self.t, 10, kernel_size=5)
+       # self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
         self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
         self.fc1 = nn.Linear(16*20, 50)
         self.fc2 = nn.Linear(50, 10)
@@ -95,11 +95,11 @@ class Net(nn.Module):
 
     def forward(self, x):
         
-      #  x = self.bn0(x)
-        im = self.th(x, self.t)
+        
+        x = self.th(x, self.t)
+        im = x
         x,w = self.binary_w(x, self.conv1)
-        #w = self.conv1.weight
-        x = F.conv2d(im,w)
+        x = F.conv2d(x,w)
         x = F.tanh(F.max_pool2d(self.bn1(x), 2))
         x,w = self.binary_w(x,self.conv2)
         x = F.conv2d(x,w)
@@ -121,23 +121,18 @@ class Net(nn.Module):
    
     def th(self, input, t):
         return Threshold(t)(input) 
-        
-   
 
 
 model = Net()
 if args.cuda:
     model.cuda()
     
-# Set the logger
-#logger = Logger('./logs')
-
 
 if args.cuda:
     model.cuda()
     
 # Set the logger
-logger = Logger('./logs')
+#logger = Logger('./logs')
 
 optimizer = optim.SGD(model.parameters(), lr=args.lr, momentum=args.momentum)
 #optimizer = optim.Adam(model.parameters(), lr=args.lr)
@@ -171,27 +166,27 @@ def train(epoch):
             accuracy = (target == argmax.squeeze()).float().mean()
 #            #============ TensorBoard logging ============#
             # (1) Log the scalar values
-            info = {
-                'loss': loss.data[0],
-                'accuracy': accuracy.data[0]
-            }
-        
-            for tag, value in info.items():
-                logger.scalar_summary(tag, value, step+1)
+#            info = {
+#                'loss': loss.data[0],
+#                'accuracy': accuracy.data[0]
+#            }
 #        
-            # (2) Log values and gradients of the parameters (histogram)
-            for tag, value in model.named_parameters():
-                tag = tag.replace('.', '/')
-                logger.histo_summary(tag, to_np(value), step+1)
-              #  logger.histo_summary(tag+'/grad', to_np(value.grad), step+1)
+#            for tag, value in info.items():
+#                logger.scalar_summary(tag, value, step+1)
+##        
+#            # (2) Log values and gradients of the parameters (histogram)
+#            for tag, value in model.named_parameters():
+#                tag = tag.replace('.', '/')
+#                logger.histo_summary(tag, to_np(value), step+1)
+#              #  logger.histo_summary(tag+'/grad', to_np(value.grad), step+1)
+##        
+#            # (3) Log the images
+#            info = {
+#                'images': to_np(im1.view(100,model.t, 28,28))[:10, 5:8, :, :]
+#            }
 #        
-            # (3) Log the images
-            info = {
-                'images': to_np(im1.view(100,model.t*3, 28,28))[:10, 5:8, :, :]
-            }
-        
-            for tag, images in info.items():
-                logger.image_summary(tag, images, step+1)
+#            for tag, images in info.items():
+#                logger.image_summary(tag, images, step+1)
                
                 
 
