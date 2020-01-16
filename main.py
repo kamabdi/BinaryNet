@@ -6,7 +6,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torchvision import datasets, transforms
 from torch.autograd import Variable
-from logger import Logger
+#from logger import Logger
 from binaryNet import Binary_W, Binary, Threshold
 
 # Training settings
@@ -49,9 +49,9 @@ test_loader = torch.utils.data.DataLoader(
                        transforms.Normalize((0.1307,), (0.3081,))
                    ])),
     batch_size=args.batch_size, shuffle=True, **kwargs)
-    
-    
-    
+
+
+
 #kwargs = {'num_workers': 2, 'pin_memory': True} if args.cuda else {}
 #train_loader = torch.utils.data.DataLoader(
 #    datasets.CIFAR10(data_folder, train=True, download=True,
@@ -59,7 +59,7 @@ test_loader = torch.utils.data.DataLoader(
 #                       transforms.RandomCrop([28, 28]),
 #                       transforms.ToTensor(),
 #                       transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-#                       
+#
 #                   ])),
 #    batch_size=args.batch_size, shuffle=True, **kwargs)
 #test_loader = torch.utils.data.DataLoader(
@@ -67,7 +67,7 @@ test_loader = torch.utils.data.DataLoader(
 #                       transforms.RandomCrop([28, 28]),
 #                       transforms.ToTensor(),
 #                       transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
-#                       
+#
 #                   ])),
 #    batch_size=args.batch_size, shuffle=True, **kwargs)
 
@@ -77,7 +77,7 @@ def to_np(x):
 def to_var(x):
     if torch.cuda.is_available():
         x = x.cuda()
-    return Variable(x)    
+    return Variable(x)
 
 class Net(nn.Module):
     def __init__(self):
@@ -94,8 +94,6 @@ class Net(nn.Module):
         self.bn3 = nn.BatchNorm1d(50)
 
     def forward(self, x):
-        
-        
         x = self.th(x, self.t)
         im = x
         x,w = self.binary_w(x, self.conv1)
@@ -108,29 +106,27 @@ class Net(nn.Module):
         x = x.view(-1, 16*20)
         x = F.tanh( self.bn3(self.fc1(x)))
     #    x = self.binary(x)
-   
         x = self.fc2(x)
-        
+
         return x, im
-    
+
     def binary(self, input):
-        return Binary()(input)  
-    
+        return Binary()(input)
+
     def binary_w(self, input, param):
        return Binary_W()(input, param.weight)
-   
-    def th(self, input, t):
-        return Threshold(t)(input) 
 
+    def th(self, input, t):
+        return Threshold(t)(input)
 
 model = Net()
 if args.cuda:
     model.cuda()
-    
+
 
 if args.cuda:
     model.cuda()
-    
+
 # Set the logger
 #logger = Logger('./logs')
 
@@ -143,7 +139,7 @@ def train(epoch):
     model.train()
     step = (epoch-1)*len(train_loader.dataset)/100
     for batch_idx, (data, target) in enumerate(train_loader):
-       
+
         if args.cuda:
             data, target = data.cuda(), target.cuda()
         data, target = Variable(data), Variable(target)
@@ -151,16 +147,16 @@ def train(epoch):
         output, im1 = model(data)
         #loss = F.nll_loss(output, target)
         loss = criterion(output, target)
-        if loss.data[0]<10.0:
+        if loss.item()<10.0:
             #print ('True')
             loss.backward()
             optimizer.step()
-            
+
         if batch_idx % args.log_interval == 0:
             print('Train Epoch: {} [{}/{} ({:.00f}%)]\tLoss: {:.6f}'.format(
                 epoch, batch_idx * len(data), len(train_loader.dataset),
-                100. * batch_idx / len(train_loader), loss.data[0]))
-            
+                100. * batch_idx / len(train_loader), loss.item()))
+
             # Compute accuracy
             _, argmax = torch.max(output, 1)
             accuracy = (target == argmax.squeeze()).float().mean()
@@ -170,39 +166,39 @@ def train(epoch):
 #                'loss': loss.data[0],
 #                'accuracy': accuracy.data[0]
 #            }
-#        
+#
 #            for tag, value in info.items():
 #                logger.scalar_summary(tag, value, step+1)
-##        
+##
 #            # (2) Log values and gradients of the parameters (histogram)
 #            for tag, value in model.named_parameters():
 #                tag = tag.replace('.', '/')
 #                logger.histo_summary(tag, to_np(value), step+1)
 #              #  logger.histo_summary(tag+'/grad', to_np(value.grad), step+1)
-##        
+##
 #            # (3) Log the images
 #            info = {
 #                'images': to_np(im1.view(100,model.t, 28,28))[:10, 5:8, :, :]
 #            }
-#        
+#
 #            for tag, images in info.items():
 #                logger.image_summary(tag, images, step+1)
-               
-                
 
-                
-                
+
+
+
+
 def adjust_learning_rate(lr, optimizer, epoch):
     """Sets the learning rate to the initial LR decayed by 10 after 150 and 225 epochs"""
-    lr = lr * (0.1 ** (epoch // 13)) 
+    lr = lr * (0.1 ** (epoch // 13))
 
     print ('Learning rate: ' + str(lr))
     # log to TensorBoard
-    
+
     for param_group in optimizer.param_groups:
-        param_group['lr'] = lr  
-                   
-        
+        param_group['lr'] = lr
+
+
 
 def test(epoch):
     model.eval()
@@ -213,7 +209,7 @@ def test(epoch):
             data, target = data.cuda(), target.cuda()
         data, target = Variable(data, volatile=True), Variable(target)
         output, im1 = model(data)
-        test_loss += criterion(output, target).data[0]
+        test_loss += criterion(output, target).item()
         pred = output.data.max(1)[1] # get the index of the max log-probability
         correct += pred.eq(target.data).cpu().sum()
 
@@ -228,5 +224,5 @@ for epoch in range(1, args.epochs + 1):
   #  adjust_learning_rate(args.lr, optimizer, epoch)
     train(epoch)
     test(epoch)
-    
+
 #torch.save(model, 'binary_mnist_l.pth.tar')
