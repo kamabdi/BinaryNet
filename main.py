@@ -6,7 +6,7 @@ import torch.nn.functional as F
 import torch.optim as optim
 from torchvision import datasets, transforms
 from torch.autograd import Variable
-from logger import Logger
+#from logger import Logger
 from binaryNet import Binary_W, Binary, Threshold
 
 # Training settings
@@ -94,8 +94,6 @@ class Net(nn.Module):
         self.bn3 = nn.BatchNorm1d(50)
 
     def forward(self, x):
-        
-        
         x = self.th(x, self.t)
         im = x
         x,w = self.binary_w(x, self.conv1)
@@ -108,7 +106,6 @@ class Net(nn.Module):
         x = x.view(-1, 16*20)
         x = F.tanh( self.bn3(self.fc1(x)))
     #    x = self.binary(x)
-   
         x = self.fc2(x)
         
         return x, im
