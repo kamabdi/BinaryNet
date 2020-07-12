@@ -27,8 +27,11 @@ parser.add_argument('--seed', type=int, default=1, metavar='S',
                     help='random seed (default: 1)')
 parser.add_argument('--log-interval', type=int, default=10, metavar='N',
                     help='how many batches to wait before logging training status')
+parser.add_argument('--num_th', type=int, default=1, metavar='N',
+                    help='how many batches to wait before logging training status')
 args = parser.parse_args()
 args.cuda = not args.no_cuda and torch.cuda.is_available()
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 torch.manual_seed(args.seed)
 if args.cuda:
@@ -49,8 +52,6 @@ test_loader = torch.utils.data.DataLoader(
                        transforms.Normalize((0.1307,), (0.3081,))
                    ])),
     batch_size=args.batch_size, shuffle=True, **kwargs)
-
-
 
 #kwargs = {'num_workers': 2, 'pin_memory': True} if args.cuda else {}
 #train_loader = torch.utils.data.DataLoader(
@@ -74,15 +75,11 @@ test_loader = torch.utils.data.DataLoader(
 def to_np(x):
     return x.data.cpu().numpy()
 
-def to_var(x):
-    if torch.cuda.is_available():
-        x = x.cuda()
-    return Variable(x)
 
 class Net(nn.Module):
     def __init__(self):
-        super(Net, self).__init__()
-        self.t = 2
+        super(Net, self, t).__init__()
+        self.t = t
         self.conv1 = nn.Conv2d(self.t, 10, kernel_size=5)
        # self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
         self.conv2 = nn.Conv2d(10, 20, kernel_size=5)
@@ -119,13 +116,8 @@ class Net(nn.Module):
     def th(self, input, t):
         return Threshold().apply(input, t)
 
-model = Net()
-if args.cuda:
-    model.cuda()
-
-
-if args.cuda:
-    model.cuda()
+model = Net(args.num_th)
+model.to(device)
 
 # Set the logger
 #logger = Logger('./logs')
@@ -139,10 +131,7 @@ def train(epoch):
     model.train()
     step = (epoch-1)*len(train_loader.dataset)/100
     for batch_idx, (data, target) in enumerate(train_loader):
-
-        if args.cuda:
-            data, target = data.cuda(), target.cuda()
-        data, target = Variable(data), Variable(target)
+        data, target = data.to(device), target.to(device)
         optimizer.zero_grad()
         output, im1 = model(data)
         #loss = F.nll_loss(output, target)
@@ -184,20 +173,11 @@ def train(epoch):
 #            for tag, images in info.items():
 #                logger.image_summary(tag, images, step+1)
 
-
-
-
-
 def adjust_learning_rate(lr, optimizer, epoch):
-    """Sets the learning rate to the initial LR decayed by 10 after 150 and 225 epochs"""
-    lr = lr * (0.1 ** (epoch // 13))
-
-    print ('Learning rate: ' + str(lr))
-    # log to TensorBoard
-
+    """Sets the learning rate to the initial LR decayed by 10 after 3 and 6 epochs"""
+    lr = lr * (0.1 ** (epoch // 6))
     for param_group in optimizer.param_groups:
         param_group['lr'] = lr
-
 
 
 def test(epoch):
@@ -205,10 +185,9 @@ def test(epoch):
     test_loss = 0
     correct = 0
     for data, target in test_loader:
-        if args.cuda:
-            data, target = data.cuda(), target.cuda()
-        data, target = Variable(data, volatile=True), Variable(target)
-        output, im1 = model(data)
+        data, target = data.to(device), target.to(device)
+        with torch.no_grad():
+            output, im1 = model(data)
         test_loss += criterion(output, target).item()
         pred = output.data.max(1)[1] # get the index of the max log-probability
         correct += pred.eq(target.data).cpu().sum()
@@ -221,8 +200,8 @@ def test(epoch):
 
 
 for epoch in range(1, args.epochs + 1):
-  #  adjust_learning_rate(args.lr, optimizer, epoch)
+    adjust_learning_rate(args.lr, optimizer, epoch)
     train(epoch)
     test(epoch)
 
-#torch.save(model, 'binary_mnist_l.pth.tar')
+torch.save(model, 'binary_mnist.pth.tar')
