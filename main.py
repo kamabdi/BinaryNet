@@ -77,8 +77,8 @@ def to_np(x):
 
 
 class Net(nn.Module):
-    def __init__(self):
-        super(Net, self, t).__init__()
+    def __init__(self, t):
+        super(Net, self).__init__()
         self.t = t
         self.conv1 = nn.Conv2d(self.t, 10, kernel_size=5)
        # self.conv1 = nn.Conv2d(1, 10, kernel_size=5)
