@@ -1,3 +1,3 @@
 # BinaryNet
 To execute use: 
-   python main.py
+   python -W ignore main.py
