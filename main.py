@@ -111,13 +111,13 @@ class Net(nn.Module):
         return x, im
 
     def binary(self, input):
-        return Binary()(input)
+        return Binary().apply(input)
 
     def binary_w(self, input, param):
-       return Binary_W()(input, param.weight)
+       return Binary_W().apply(input, param.weight)
 
     def th(self, input, t):
-        return Threshold(t)(input)
+        return Threshold().apply(input, t)
 
 model = Net()
 if args.cuda:
