@@ -53,8 +53,8 @@ class Threshold(Function):
         self.save_for_backward(input)
         m = torch.min(input)
         n = torch.max(input)
-        r = torch.linspace(m, n, steps=th+1).to(input.device)
-        for i in r[1:]: # excluding the smallest value
+        r = torch.linspace(m, n, steps=th+2).to(input.device)
+        for i in r[1:-1]: # excluding the smallest value, and the biggest
                 output = input.clone()
                 output[output< i]=torch.Tensor([-1]).to(input.device)
                 output[output>=i]=torch.Tensor([1]).to(input.device)
