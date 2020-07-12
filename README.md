@@ -1,3 +1,7 @@
 # BinaryNet
 To execute use: 
-   python -W ignore main.py
+   python  main.py --num_th 1
+   
+   or 
+   
+   run in colab BinaryNet.ipynb
